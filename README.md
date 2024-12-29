@@ -1,11 +1,12 @@
 
-# Admin Dashboard
+# ArcadiaAdmin Dashboard
+
 1. Support business flow
 2. Support web page and mobile page access
 3. Support basic auth
 
-
 ## 流程描述
+
 a basic business flow in initial arcadia version
 
 1. 玩家玩游戏获得积分，可以在游戏外购买，或者叫兑换 coupon。
@@ -31,18 +32,168 @@ a basic business flow in initial arcadia version
 
 ### 商家管理后台
 
-Email 注册，同时获得 account 地址
-购买积分
-发行优惠券
-已发行优惠券 list
-核销优惠券
+#### 注册和登陆
 
+  首页 Email 注册，（同时获得 account 地址，todo）
+  验证 email code，或者直接 email 内容链接跳转登陆
+
+#### 商家介绍  
+
+  商家名称、商家介绍、商家位置、商家图片集合
+  可以修改，至少三张图片
+  提供基于地图的位置
+
+#### 积分充值
+
+  目前仅仅支持现金购买线下交易
+  线下管理员/运营人员收到现金，提供充值码
+  商家输入充值码，完成积分购买
+
+#### 发行优惠券页面
+
+  自动填写优惠券发行商家
+  选择优惠券类型
+  选择优惠券折扣等信息（依赖不同优惠券类型）
+  选择优惠券发行数量
+  选择优惠券开始和过期时间
+  选择优惠券发行价格（以积分计算）
+  提交，检查商家积分余额，支付积分，提交成功
+  
+#### 已发行优惠券展示页面
+
+  展示已发行优惠券列表
+  展示优惠券状态：未使用、已使用、已过期
+  展示优惠券使用情况（百分比）
+  展示优惠券过期时间
+  展示优惠券折扣
+  展示优惠券发行商家
+  展示优惠券发行数量
+  展示优惠券开始和过期时间
+  展示优惠券发行价格（以积分计算）
+
+#### 核销优惠券页面
+
+  前提：（优惠券发行后，玩家积分兑换获得优惠券）
+  商家获得玩家提供的凭证，页面输入 passcode 或者二维码扫描
+  点击核销优惠券
+  核销后，优惠券状态变为已使用
 
 ### 玩家管理后台
-
-积分余额
+不提供注册登陆，未来和其他系统集成
+展示积分余额（虚假功能）
 已兑换 Coupon
 点击 coupon，显示二维码和 passcode
+显示商家介绍：位置、商家名称、商家介绍，图片集合
+
+
+## 技术设计
+-- 商家表
+CREATE TABLE merchants (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  location JSONB,
+  images TEXT[], -- 存储图片 URL 数组
+  points INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 优惠券类型表
+CREATE TABLE coupon_types (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT
+);
+
+-- 优惠券表
+CREATE TABLE coupons (
+  id SERIAL PRIMARY KEY,
+  merchant_id INTEGER REFERENCES merchants(id),
+  type_id INTEGER REFERENCES coupon_types(id),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  discount_value DECIMAL,
+  total_quantity INTEGER NOT NULL,
+  remaining_quantity INTEGER NOT NULL,
+  points_price INTEGER NOT NULL,
+  start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 玩家优惠券表
+CREATE TABLE player_coupons (
+  id SERIAL PRIMARY KEY,
+  coupon_id INTEGER REFERENCES coupons(id),
+  player_id VARCHAR(255) NOT NULL, -- 外部玩家 ID
+  pass_code VARCHAR(255) UNIQUE NOT NULL,
+  qr_code TEXT, -- 存储二维码 URL
+  status VARCHAR(20) DEFAULT 'unused', -- unused, used, expired
+  used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 充值码表
+CREATE TABLE recharge_codes (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(255) UNIQUE NOT NULL,
+  points INTEGER NOT NULL,
+  merchant_id INTEGER REFERENCES merchants(id),
+  status VARCHAR(20) DEFAULT 'unused', -- unused, used
+  used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+npm install @prisma/client @auth/prisma-adapter qrcode uuid
+
+
+npx prisma init
+npx prisma db push
+
+npx Prisma init
+
+✔ Your Prisma schema was created at prisma/schema.prisma
+  You can now open it in your favorite editor.
+
+warn You already have a .gitignore file. Don't forget to add `.env` in it to not commit any private information.
+
+Next steps:
+1. Set the DATABASE_URL in the .env file to point to your existing database. If your database has no tables yet, read https://pris.ly/d/getting-started
+2. Set the provider of the datasource block in schema.prisma to match your database: postgresql, mysql, sqlite, sqlserver, mongodb or cockroachdb.
+3. Run prisma db pull to turn your database schema into a Prisma schema.
+4. Run prisma generate to generate the Prisma Client. You can then start querying your database.
+5. Tip: Explore how you can extend the ORM with scalable connection pooling, global caching, and real-time database events. Read: https://pris.ly/cli/beyond-orm
+
+More information in our documentation:
+https://pris.ly/d/getting-started
+
+# 创建数据库迁移
+npx prisma migrate dev --name init
+
+# 生成 Prisma Client
+npx prisma generate
+Applying migration `20241229045051_init`
+
+The following migration(s) have been created and applied from new schema changes:
+
+migrations/
+  └─ 20241229045051_init/
+    └─ migration.sql
+
+
+Resend
+import { Resend } from 'resend';
+
+const resend = new Resend('API_KEY');
+
+resend.emails.send({
+  from: 'onboarding@resend.dev',
+  to: 'jhfnetboy@gmail.com',
+  subject: 'Hello World',
+  html: '<p>Congrats on sending your <strong>first email</strong>!</p>'
+});    
 
 ## Tech Stack
 
