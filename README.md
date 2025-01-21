@@ -1,4 +1,4 @@
-# Build based on a framework is harder than build with AI from zero for me, so stop this project. 😿
+# Building based on a framework is harder than building with AI from zero for me, so stop this project. 😿
 # ArcadiaAdmin Dashboard
 
 1. Support business flow
